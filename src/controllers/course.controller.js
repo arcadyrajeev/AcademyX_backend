@@ -59,41 +59,43 @@ const createCourse = asyncHandler(async (req,res)=>{
     )
 })
 
-const updateCourse = asyncHandler(async (req,res)=>{
-    const{courseId} = req.params
-    if(!isValidObjectId(courseId)){
-        throw new ApiError(400,"enter valid Course Id")
-    }
-    const{courseName,title,description,price,duration,category} = req.body
+const updateCourse = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
 
-    if([courseName,title,description,price,duration,category].some((field)=> !field || field.trim()==="")){
-        throw new ApiError(400,"send valid data or fields cannot be empty")
+  if (!isValidObjectId(courseId)) {
+    throw new ApiError(400, "Enter a valid Course ID");
+  }
+
+  const course = await Course.findById(courseId);
+  if (!course) {
+    throw new ApiError(404, "Course not found");
+  }
+
+  if (!course.educator.equals(req.user?._id)) {
+    throw new ApiError(403, `You are not the owner of this course`);
+  }
+
+  // Build update object dynamically
+  const updateFields = {};
+  const allowedFields = ["courseName", "title", "description", "price", "duration", "category"];
+
+  for (let field of allowedFields) {
+    if (req.body[field] && req.body[field].trim() !== "") {
+      if (field === "price" && parseInt(req.body[field]) < 0) {
+        throw new ApiError(400, "Price cannot be negative");
+      }
+      updateFields[field] = req.body[field].trim();
     }
-    if(price<0 || parseInt(price) < 0){
-        throw new ApiError(400,"price cannot be negative or fraction")
-    }
-    const course = await Course.findById(new mongoose.Types.ObjectId(courseId))
-    
-    if(!course.educator.equals(req.user?._id)){
-        throw new ApiError(403,`you are not owner of ${course.courseName} course`)
-    }
-    const updatedCourse = await Course.findByIdAndUpdate(new mongoose.Types.ObjectId(courseId),{
-        $set:{
-            courseName : courseName.trim(),
-            description: description.trim(),
-            price,
-            title,
-            duration:duration.trim(),
-            category:category.trim()
-        },
-        
-    },{new:true})
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(200,updatedCourse,"course updated successfully")
-    )
-})
+  }
+
+  const updatedCourse = await Course.findByIdAndUpdate(
+    courseId,
+    { $set: updateFields },
+    { new: true }
+  );
+
+  return res.status(200).json(new ApiResponse(200, updatedCourse, "Course updated successfully"));
+});
 
 //update thumbnail
 const updateThumbnail = asyncHandler(async (req,res)=>{
