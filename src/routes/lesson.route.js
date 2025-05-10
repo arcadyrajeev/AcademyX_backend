@@ -14,11 +14,11 @@ router.route("/:courseId")
     .post(verifyJWT,upload.single("video"),createLesson)
     .get(verifyJWT,getLessonsByCourse)
 
-router.route("/:lessonId/course/:courseId")
+router.route("/:courseId/:lessonId")
     .post(verifyJWT,upload.single("video"),addVideoLesson)
     .put(verifyJWT,editLesson)
     .delete(verifyJWT,deleteLessonById)
-router.route("/:lessonId/course/:courseId/video/:videoId")
+router.route("/:courseId/:lessonId/:videoId")
     .delete(verifyJWT,deleteVideo)
 
 module.exports = router
